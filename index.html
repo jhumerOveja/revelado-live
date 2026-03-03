@@ -2,78 +2,48 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OVEJA CLOUD - Galería Live</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OVEJA CLOUD LIVE</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .loading { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        /* Bloqueo visual básico */
+        img { pointer-events: none; -webkit-user-select: none; user-select: none; }
+        body { -webkit-tap-highlight-color: transparent; }
+        .grid-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; padding: 4px; }
     </style>
 </head>
-<body class="bg-black text-white font-sans">
-    <header class="p-6 text-center border-b border-zinc-800 bg-zinc-950 sticky top-0 z-50">
-        <h1 class="text-3xl font-black italic text-orange-500 uppercase tracking-tighter">Oveja Cloud Live</h1>
-        <p class="text-zinc-500 text-xs mt-1">Las fotos aparecen aquí automáticamente</p>
+<body class="bg-black text-white">
+    <header class="p-8 text-center bg-zinc-950 border-b border-zinc-900">
+        <h1 class="text-4xl font-black tracking-tighter italic text-orange-500 uppercase">Oveja Cloud Live</h1>
+        <p class="text-zinc-500 text-sm font-medium mt-2">LAS FOTOS APARECEN AQUÍ AUTOMÁTICAMENTE</p>
     </header>
 
-    <main id="galeria" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 p-1">
-        <div class="col-span-full py-20 text-center text-zinc-600 loading">Conectando con la nube...</div>
-    </main>
+    <div id="galeria" class="grid-gallery">
+        </div>
 
     <script>
-        // --- CONFIGURACIÓN (REEMPLAZA CON TUS DATOS) ---
-        const S_URL = "https://ndmduyqfxlqiirekmnga.supabase.co"; // Tu URL de la captura 4779.jpg
-        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbWR1eXFmeGxxaWlyZWttbmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjQzNDAsImV4cCI6MjA4ODEwMDM0MH0.1k29DJKccBgkwJinvAZOBlchSEMQUjU0C7uY8CKsbPw";
-        const BUCKET = "revelado-live";
-
+        const S_URL = "https://ndmduyqfxlqiirekmnga.supabase.co"; 
+        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbWR1eXFmeGxxaWlyZWttbmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjQzNDAsImV4cCI6MjA4ODEwMDM0MH0.1k29DJKccBgkwJinvAZOBlchSEMQUjU0C7uY8CKsbPw"; // La que empieza por eyJ...
         const _supabase = supabase.createClient(S_URL, S_KEY);
 
-        async function obtenerFotos() {
-            try {
-                // Pedimos la lista de archivos ordenados por fecha de creación
-                const { data, error } = await _supabase.storage.from(BUCKET).list('', {
-                    limit: 100,
-                    sortBy: { column: 'created_at', order: 'desc' }
-                });
+        async function cargar() {
+            const { data } = await _supabase.storage.from('revelado-live').list('', {
+                limit: 100, sortBy: { column: 'created_at', order: 'desc' }
+            });
 
-                if (error) throw error;
-
+            if (data) {
                 const contenedor = document.getElementById('galeria');
-                
-                if (!data || data.length === 0) {
-                    contenedor.innerHTML = "<div class='col-span-full py-20 text-center text-zinc-500'>Aún no hay fotos subidas.</div>";
-                    return;
-                }
-
-                // Generamos el HTML de las fotos
-                const htmlFotos = data.map(foto => {
-                    // URL Pública directa
-                    const urlPublica = `${S_URL}/storage/v1/object/public/${BUCKET}/${foto.name}`;
-                    
-                    return `
-                        <div class="relative aspect-square bg-zinc-900 overflow-hidden group">
-                            <img src="${urlPublica}" 
-                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                 loading="lazy">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                                <a href="${urlPublica}" download class="w-full bg-orange-500 text-white text-[10px] font-bold py-2 rounded text-center uppercase">Descargar</a>
-                            </div>
-                        </div>`;
-                }).join('');
-
-                contenedor.innerHTML = htmlFotos;
-
-            } catch (err) {
-                console.error("Error de conexión:", err);
-                document.getElementById('galeria').innerHTML = `<div class="col-span-full p-10 text-center text-red-500 italic">Error de conexión: ${err.message}</div>`;
+                contenedor.innerHTML = data.map(f => `
+                    <div class="aspect-square bg-zinc-900 overflow-hidden relative border border-white/5">
+                        <img src="${S_URL}/storage/v1/object/public/revelado-live/${f.name}" 
+                             class="w-full h-full object-cover">
+                    </div>
+                `).join('');
             }
         }
-
-        // Actualizar cada 5 segundos para el "Live"
-        setInterval(obtenerFotos, 5000);
-        // Carga inicial
-        obtenerFotos();
+        setInterval(cargar, 5000);
+        cargar();
     </script>
 </body>
 </html>
