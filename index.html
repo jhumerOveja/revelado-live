@@ -15,7 +15,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* HEADER */
         .header {
             background: #111;
             padding: 20px 16px 12px;
@@ -70,7 +69,6 @@
             margin-top: 4px;
         }
 
-        /* GALERÍA */
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -104,7 +102,6 @@
             user-select: none;
         }
 
-        /* WATERMARK EN LA IMAGEN (por si no quieres procesarlas) */
         .photo-card .watermark {
             position: absolute;
             bottom: 6px;
@@ -161,7 +158,6 @@
             opacity: 1;
         }
 
-        /* Solo en desktop mostramos el hover */
         @media (hover: hover) {
             .photo-card:hover .whatsapp-hint {
                 opacity: 1;
@@ -214,7 +210,34 @@
             opacity: 0.3;
         }
 
-        /* MODAL */
+        .error-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            color: #ff6b6b;
+            font-size: 14px;
+            text-align: center;
+            padding: 20px;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .error-box .icon {
+            font-size: 48px;
+        }
+
+        .error-box .details {
+            color: #888;
+            font-size: 12px;
+            max-width: 400px;
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+            word-break: break-all;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -333,7 +356,6 @@
             opacity: 0.8;
         }
 
-        /* FOOTER */
         .footer {
             text-align: center;
             padding: 16px;
@@ -343,12 +365,6 @@
             margin-top: 4px;
         }
 
-        .footer a {
-            color: #555;
-            text-decoration: none;
-        }
-
-        /* RESPONSIVE */
         @media (max-width: 480px) {
             .gallery {
                 grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -366,7 +382,6 @@
             }
         }
 
-        /* CONTADOR DE FOTOS */
         .photo-counter {
             color: #444;
             font-size: 11px;
@@ -377,7 +392,6 @@
 </head>
 <body>
 
-    <!-- HEADER -->
     <header class="header">
         <h1>🐑 OVEJA CLOUD</h1>
         <div>
@@ -391,7 +405,6 @@
         </div>
     </header>
 
-    <!-- GALERÍA -->
     <div id="gallery" class="gallery">
         <div class="loader">
             <div class="spinner"></div>
@@ -399,7 +412,6 @@
         </div>
     </div>
 
-    <!-- MODAL -->
     <div id="modal" class="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="cerrarModal()">✕</button>
@@ -421,7 +433,6 @@
         </div>
     </div>
 
-    <!-- FOOTER -->
     <footer class="footer">
         <span>📷 Todas las fotos tienen marca de agua</span>
         <span>•</span>
@@ -432,15 +443,33 @@
 
     <script>
         // ============================================================
-        // CONFIGURACIÓN
+        // CONFIGURACIÓN - ¡REEMPLAZA ESTOS VALORES!
         // ============================================================
         const SUPABASE_URL = "https://ndmduyqfxlqiirekmnga.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbWR1eXFmeGxxaWlyZWttbmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjQzNDAsImV4cCI6MjA4ODEwMDM0MH0.1k29DJKccBgkwJinvAZOBlchSEMQUjU0C7uY8CKsbPw"; // ← REEMPLAZA ESTO
-        const WHATSAPP_NUMBER = "59160004962"; // ← REEMPLAZA CON TU NÚMERO
+        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbWR1eXFmeGxxaWlyZWttbmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjQzNDAsImV4cCI6MjA4ODEwMDM0MH0.1k29DJKccBgkwJinvAZOBlchSEMQUjU0C7uY8CKsbPw"; // La que empieza por eyJ...
+        const WHATSAPP_NUMBER = "59160004962"; // ← ¡CAMBIA ESTO!
         const BUCKET_NAME = "revelado-live";
         
-        // Mensaje personalizado para WhatsApp
         const MENSAJE_BASE = "Hola, quiero la foto:";
+
+        // ============================================================
+        // VALIDACIÓN DE CONFIGURACIÓN
+        // ============================================================
+        if (SUPABASE_KEY === "TU_ANON_KEY_AQUI") {
+            document.getElementById('gallery').innerHTML = `
+                <div class="error-box">
+                    <div class="icon">⚠️</div>
+                    <strong>Error de configuración</strong>
+                    <span>No has configurado la clave de Supabase</span>
+                    <div class="details">
+                        Edita el archivo y reemplaza:<br>
+                        <code>SUPABASE_KEY = "TU_ANON_KEY_AQUI"</code><br>
+                        por tu clave anónima de Supabase
+                    </div>
+                </div>
+            `;
+            throw new Error('Configuración incompleta: falta SUPABASE_KEY');
+        }
 
         // ============================================================
         // INICIALIZACIÓN
@@ -449,23 +478,71 @@
         
         let fotos = [];
         let fotoSeleccionada = null;
-        let timeoutActualizacion = null;
 
         // ============================================================
-        // CARGAR FOTOS (OPTIMIZADO)
+        // FUNCIÓN PARA VERIFICAR BUCKET
+        // ============================================================
+        async function verificarBucket() {
+            try {
+                // Primero verificamos si el bucket existe y es público
+                const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+                
+                if (bucketError) {
+                    console.error('Error al listar buckets:', bucketError);
+                    return false;
+                }
+                
+                const bucketExiste = buckets.some(b => b.name === BUCKET_NAME);
+                if (!bucketExiste) {
+                    console.error(`El bucket "${BUCKET_NAME}" no existe`);
+                    return false;
+                }
+                
+                console.log(`✅ Bucket "${BUCKET_NAME}" encontrado`);
+                return true;
+            } catch (e) {
+                console.error('Error verificando bucket:', e);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // CARGAR FOTOS CON ERROR HANDLING MEJORADO
         // ============================================================
         async function cargarFotos(mostrarLoader = false) {
+            const gallery = document.getElementById('gallery');
+            
             try {
                 if (mostrarLoader) {
-                    document.getElementById('gallery').innerHTML = `
+                    gallery.innerHTML = `
                         <div class="loader">
                             <div class="spinner"></div>
-                            <span>Actualizando...</span>
+                            <span>Conectando con Supabase...</span>
                         </div>
                     `;
                 }
 
-                // Solo pedimos los nombres, NO los metadatos para ahorrar tráfico
+                console.log('🔍 Intentando cargar fotos desde:', BUCKET_NAME);
+                console.log('📡 URL:', SUPABASE_URL);
+
+                // Primero verificamos el bucket
+                const bucketOK = await verificarBucket();
+                if (!bucketOK) {
+                    gallery.innerHTML = `
+                        <div class="error-box">
+                            <div class="icon">📁</div>
+                            <strong>Bucket no encontrado</strong>
+                            <span>El bucket "${BUCKET_NAME}" no existe o no es público</span>
+                            <div class="details">
+                                Verifica que el bucket existe en Supabase<br>
+                                y que está configurado como "público"
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Intentamos listar los archivos
                 const { data, error } = await supabase.storage
                     .from(BUCKET_NAME)
                     .list('', {
@@ -473,7 +550,12 @@
                         sortBy: { column: 'created_at', order: 'desc' }
                     });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Error de Supabase:', error);
+                    throw error;
+                }
+
+                console.log('📸 Archivos encontrados:', data?.length || 0);
 
                 if (data && data.length > 0) {
                     fotos = data;
@@ -481,33 +563,44 @@
                     actualizarContador();
                     actualizarHoraActualizacion();
                 } else {
-                    document.getElementById('gallery').innerHTML = `
+                    gallery.innerHTML = `
                         <div class="empty">
                             <div class="icon">📸</div>
-                            <span>Aún no hay fotos</span>
-                            <span style="font-size:12px;color:#333;">Pronto empezará el evento</span>
+                            <span>No hay fotos en el bucket</span>
+                            <span style="font-size:12px;color:#333;">Sube algunas fotos a "${BUCKET_NAME}"</span>
                         </div>
                     `;
                     actualizarContador(0);
                 }
 
             } catch (error) {
-                console.error('Error:', error);
-                // Si hay error, mantenemos lo que ya teníamos
-                if (!fotos.length) {
-                    document.getElementById('gallery').innerHTML = `
-                        <div class="empty">
-                            <div class="icon">⚠️</div>
-                            <span>Error al conectar</span>
-                            <span style="font-size:12px;color:#333;">Reintentando en 30s...</span>
+                console.error('❌ Error general:', error);
+                
+                // Mostrar error detallado
+                gallery.innerHTML = `
+                    <div class="error-box">
+                        <div class="icon">🚨</div>
+                        <strong>Error al cargar las fotos</strong>
+                        <span>${error.message || 'Error desconocido'}</span>
+                        <div class="details">
+                            <strong>Detalles técnicos:</strong><br>
+                            ${error.stack || 'Sin stack trace'}<br><br>
+                            <strong>Posibles soluciones:</strong><br>
+                            1. Verifica que la clave anónima sea correcta<br>
+                            2. Confirma que el bucket existe y es público<br>
+                            3. Revisa la consola (F12) para más detalles
                         </div>
-                    `;
-                }
+                        <button onclick="cargarFotos(true)" 
+                                style="margin-top:12px;padding:8px 24px;background:#f97316;border:none;border-radius:6px;color:white;font-weight:600;cursor:pointer;">
+                            🔄 Reintentar
+                        </button>
+                    </div>
+                `;
             }
         }
 
         // ============================================================
-        // RENDERIZAR GALERÍA (OPTIMIZADO)
+        // RENDERIZAR GALERÍA
         // ============================================================
         function renderGaleria() {
             const gallery = document.getElementById('gallery');
@@ -525,13 +618,16 @@
             gallery.innerHTML = fotos.map((f, index) => {
                 const nombre = f.name.replace(/\.[^/.]+$/, "");
                 const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${f.name}`;
-                // Usamos lazy loading nativo para ahorrar ancho de banda
                 return `
-                    <div class="photo-card" onclick="abrirModal(${index})" loading="lazy">
+                    <div class="photo-card" onclick="abrirModal(${index})">
                         <img src="${url}" 
                              alt="${nombre}" 
                              loading="lazy"
-                             decoding="async">
+                             decoding="async"
+                             onerror="this.style.display='none'; this.parentElement.querySelector('.error-img').style.display='flex';">
+                        <div class="error-img" style="display:none;position:absolute;inset:0;background:#1a1a1a;align-items:center;justify-content:center;color:#666;font-size:12px;">
+                            ❌ No se pudo cargar
+                        </div>
                         <span class="photo-name">${nombre}</span>
                         <span class="watermark">© OVEJA</span>
                         <div class="whatsapp-hint">💬</div>
@@ -546,7 +642,7 @@
         function actualizarContador(total = null) {
             const el = document.getElementById('fotoCounter');
             const count = total !== null ? total : fotos.length;
-            el.textContent = count === 1 ? '1 foto' : `${count} fotos`;
+            el.textContent = count === 0 ? 'Sin fotos' : count === 1 ? '1 foto' : `${count} fotos`;
         }
 
         function actualizarHoraActualizacion() {
@@ -583,7 +679,7 @@
         }
 
         // ============================================================
-        // WHATSAPP (SOLO UNA FOTO)
+        // WHATSAPP
         // ============================================================
         function abrirWhatsApp() {
             if (!fotoSeleccionada) return;
@@ -591,17 +687,15 @@
             const mensaje = `${MENSAJE_BASE} "${fotoSeleccionada.nombre}"`;
             const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`;
             
-            // Abrimos WhatsApp
             window.open(url, '_blank');
             
-            // Cerrar modal después de un momento
             setTimeout(() => {
                 cerrarModal();
             }, 500);
         }
 
         // ============================================================
-        // CIERRE DE MODAL CON ESC Y CLICK FUERA
+        // EVENTOS
         // ============================================================
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') cerrarModal();
@@ -612,12 +706,16 @@
         });
 
         // ============================================================
-        // INICIO Y ACTUALIZACIÓN AUTOMÁTICA (CADA 10 SEGUNDOS)
+        // INICIO
         // ============================================================
+        console.log('🐑 Oveja Cloud Live iniciado');
+        console.log('📡 Conectando a:', SUPABASE_URL);
+        console.log('📁 Bucket:', BUCKET_NAME);
+        
         // Cargar inicial
         cargarFotos(true);
 
-        // Actualizar cada 10 segundos (más que suficiente)
+        // Actualizar cada 10 segundos
         setInterval(() => {
             cargarFotos(false);
         }, 10000);
@@ -626,20 +724,6 @@
         setInterval(() => {
             actualizarHoraActualizacion();
         }, 60000);
-
-        // ============================================================
-        // SERVICE WORKER PARA CACHÉ (OPCIONAL - PARA OPTIMIZAR AÚN MÁS)
-        // ============================================================
-        // Si quieres implementar caché de imágenes, puedes agregar:
-        // - PWA manifest
-        // - Service worker para cachear imágenes ya vistas
-        // Esto reduciría aún más el consumo de Supabase
-
-        console.log('🐑 Oveja Cloud Live iniciado');
-        console.log(`📸 ${fotos.length} fotos cargadas`);
-        console.log('⏱ Actualizando cada 10 segundos');
-        console.log('💬 WhatsApp: solo una foto por persona');
-        console.log('🔒 Todas las fotos tienen marca de agua');
     </script>
 
 </body>
