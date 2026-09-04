@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OVEJA CLOUD LIVE • Evento en Vivo</title>
+    <title>OVEJA CLOUD LIVE</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,6 +15,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* HEADER */
         .header {
             background: #111;
             padding: 20px 16px 12px;
@@ -34,7 +35,6 @@
             background: linear-gradient(135deg, #f97316, #fb923c);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: none;
         }
 
         .live-badge {
@@ -60,7 +60,6 @@
             color: #888;
             font-size: 13px;
             margin-top: 8px;
-            font-weight: 400;
         }
 
         .header .update-info {
@@ -69,6 +68,7 @@
             margin-top: 4px;
         }
 
+        /* GALERÍA */
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -98,8 +98,8 @@
             object-fit: cover;
             display: block;
             pointer-events: none;
-            -webkit-user-select: none;
             user-select: none;
+            -webkit-user-select: none;
         }
 
         .photo-card .watermark {
@@ -107,7 +107,7 @@
             bottom: 6px;
             right: 6px;
             background: rgba(0,0,0,0.7);
-            color: rgba(255,255,255,0.4);
+            color: rgba(255,255,255,0.3);
             font-size: 9px;
             padding: 2px 8px;
             border-radius: 3px;
@@ -168,16 +168,21 @@
             }
         }
 
-        .loader {
+        /* ESTADOS */
+        .loader, .empty, .error-box {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 300px;
-            color: #444;
-            font-size: 14px;
+            text-align: center;
+            padding: 20px;
             flex-direction: column;
             gap: 12px;
         }
+
+        .loader { color: #444; }
+        .empty { color: #555; }
+        .error-box { color: #ff6b6b; }
 
         .loader .spinner {
             width: 40px;
@@ -192,52 +197,43 @@
             to { transform: rotate(360deg); }
         }
 
-        .empty {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 300px;
-            color: #555;
-            font-size: 15px;
-            text-align: center;
-            padding: 20px;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .empty .icon {
-            font-size: 48px;
-            opacity: 0.3;
-        }
-
-        .error-box {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 300px;
-            color: #ff6b6b;
-            font-size: 14px;
-            text-align: center;
-            padding: 20px;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .error-box .icon {
-            font-size: 48px;
-        }
-
+        .error-box .icon { font-size: 48px; }
         .error-box .details {
             color: #888;
             font-size: 12px;
-            max-width: 400px;
+            max-width: 500px;
             background: #1a1a1a;
             padding: 12px;
             border-radius: 8px;
             border: 1px solid #2a2a2a;
             word-break: break-all;
+            text-align: left;
         }
 
+        .error-box .details code {
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #f97316;
+        }
+
+        .btn-retry {
+            margin-top: 12px;
+            padding: 8px 24px;
+            background: #f97316;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-retry:hover {
+            background: #ea580c;
+        }
+
+        /* MODAL */
         .modal {
             display: none;
             position: fixed;
@@ -377,16 +373,6 @@
             .modal-content {
                 max-width: 98%;
             }
-            .modal-footer .photo-info {
-                font-size: 12px;
-            }
-        }
-
-        .photo-counter {
-            color: #444;
-            font-size: 11px;
-            margin-top: 4px;
-            font-weight: 400;
         }
     </style>
 </head>
@@ -443,78 +429,59 @@
 
     <script>
         // ============================================================
-        // CONFIGURACIÓN - ¡REEMPLAZA ESTOS VALORES!
+        // ⚠️ CONFIGURACIÓN - ¡REEMPLAZA LOS VALORES!
         // ============================================================
-        const SUPABASE_URL = "https://ndmduyqfxlqiirekmnga.supabase.co";
+        const S_URL = "https://ndmduyqfxlqiirekmnga.supabase.co";
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbWR1eXFmeGxxaWlyZWttbmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjQzNDAsImV4cCI6MjA4ODEwMDM0MH0.1k29DJKccBgkwJinvAZOBlchSEMQUjU0C7uY8CKsbPw"; // La que empieza por eyJ...
-        const WHATSAPP_NUMBER = "59160004962"; // ← ¡CAMBIA ESTO!
+        const WHATSAPP_NUMBER = "59160004962"; // ← PON AQUÍ TU NÚMERO
         const BUCKET_NAME = "revelado-live";
         
-        const MENSAJE_BASE = "Hola, quiero la foto:";
+        // ============================================================
+        // VALIDACIÓN INICIAL
+        // ============================================================
+        const galleryElement = document.getElementById('gallery');
 
-        // ============================================================
-        // VALIDACIÓN DE CONFIGURACIÓN
-        // ============================================================
-        if (SUPABASE_KEY === "TU_ANON_KEY_AQUI") {
-            document.getElementById('gallery').innerHTML = `
+        // Verificar que la clave no esté vacía
+        if (!S_KEY || S_KEY.trim() === '') {
+            galleryElement.innerHTML = `
                 <div class="error-box">
-                    <div class="icon">⚠️</div>
-                    <strong>Error de configuración</strong>
-                    <span>No has configurado la clave de Supabase</span>
+                    <div class="icon">🔑</div>
+                    <strong>Falta la clave de Supabase</strong>
+                    <span>No has configurado la <code>S_KEY</code></span>
                     <div class="details">
-                        Edita el archivo y reemplaza:<br>
-                        <code>SUPABASE_KEY = "TU_ANON_KEY_AQUI"</code><br>
-                        por tu clave anónima de Supabase
+                        <strong>Solución:</strong><br>
+                        1. Ve a <a href="https://app.supabase.com" target="_blank" style="color:#f97316;">Supabase Dashboard</a><br>
+                        2. Selecciona tu proyecto<br>
+                        3. Ve a <strong>Settings → API</strong><br>
+                        4. Copia la clave <strong>"anon public"</strong><br>
+                        5. Pégala en la variable <code>S_KEY</code> (línea 138)
                     </div>
                 </div>
             `;
-            throw new Error('Configuración incompleta: falta SUPABASE_KEY');
+            throw new Error('❌ S_KEY no configurada');
         }
 
         // ============================================================
-        // INICIALIZACIÓN
+        // INICIALIZAR SUPABASE
         // ============================================================
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('🚀 Iniciando Oveja Cloud Live...');
+        console.log('📡 Conectando a:', S_URL);
+        console.log('📁 Bucket:', BUCKET_NAME);
+        console.log('🔑 Key:', S_KEY.substring(0, 20) + '...');
+
+        const _supabase = supabase.createClient(S_URL, S_KEY);
         
         let fotos = [];
         let fotoSeleccionada = null;
+        let intentosFallidos = 0;
 
         // ============================================================
-        // FUNCIÓN PARA VERIFICAR BUCKET
+        // FUNCIÓN PRINCIPAL - CARGAR FOTOS
         // ============================================================
-        async function verificarBucket() {
-            try {
-                // Primero verificamos si el bucket existe y es público
-                const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-                
-                if (bucketError) {
-                    console.error('Error al listar buckets:', bucketError);
-                    return false;
-                }
-                
-                const bucketExiste = buckets.some(b => b.name === BUCKET_NAME);
-                if (!bucketExiste) {
-                    console.error(`El bucket "${BUCKET_NAME}" no existe`);
-                    return false;
-                }
-                
-                console.log(`✅ Bucket "${BUCKET_NAME}" encontrado`);
-                return true;
-            } catch (e) {
-                console.error('Error verificando bucket:', e);
-                return false;
-            }
-        }
-
-        // ============================================================
-        // CARGAR FOTOS CON ERROR HANDLING MEJORADO
-        // ============================================================
-        async function cargarFotos(mostrarLoader = false) {
-            const gallery = document.getElementById('gallery');
-            
+        async function cargar(mostrarLoader = false) {
             try {
                 if (mostrarLoader) {
-                    gallery.innerHTML = `
+                    galleryElement.innerHTML = `
                         <div class="loader">
                             <div class="spinner"></div>
                             <span>Conectando con Supabase...</span>
@@ -522,80 +489,77 @@
                     `;
                 }
 
-                console.log('🔍 Intentando cargar fotos desde:', BUCKET_NAME);
-                console.log('📡 URL:', SUPABASE_URL);
+                console.log('🔄 Cargando fotos...');
 
-                // Primero verificamos el bucket
-                const bucketOK = await verificarBucket();
-                if (!bucketOK) {
-                    gallery.innerHTML = `
-                        <div class="error-box">
-                            <div class="icon">📁</div>
-                            <strong>Bucket no encontrado</strong>
-                            <span>El bucket "${BUCKET_NAME}" no existe o no es público</span>
-                            <div class="details">
-                                Verifica que el bucket existe en Supabase<br>
-                                y que está configurado como "público"
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Intentamos listar los archivos
-                const { data, error } = await supabase.storage
+                // Intentar listar archivos
+                const { data, error } = await _supabase.storage
                     .from(BUCKET_NAME)
                     .list('', {
                         limit: 100,
                         sortBy: { column: 'created_at', order: 'desc' }
                     });
 
+                // Si hay error, mostrar detalles
                 if (error) {
                     console.error('❌ Error de Supabase:', error);
                     throw error;
                 }
 
-                console.log('📸 Archivos encontrados:', data?.length || 0);
-
-                if (data && data.length > 0) {
-                    fotos = data;
-                    renderGaleria();
-                    actualizarContador();
-                    actualizarHoraActualizacion();
-                } else {
-                    gallery.innerHTML = `
+                // Si no hay datos o está vacío
+                if (!data || data.length === 0) {
+                    console.warn('⚠️ No hay fotos en el bucket');
+                    galleryElement.innerHTML = `
                         <div class="empty">
                             <div class="icon">📸</div>
-                            <span>No hay fotos en el bucket</span>
-                            <span style="font-size:12px;color:#333;">Sube algunas fotos a "${BUCKET_NAME}"</span>
+                            <span>No hay fotos disponibles</span>
+                            <span style="font-size:12px;color:#333;">
+                                Sube algunas fotos a "${BUCKET_NAME}" desde Supabase
+                            </span>
                         </div>
                     `;
-                    actualizarContador(0);
+                    document.getElementById('fotoCounter').textContent = '0 fotos';
+                    return;
                 }
+
+                // Todo bien, guardar y mostrar
+                console.log(`✅ ${data.length} fotos cargadas`);
+                fotos = data;
+                renderGaleria();
+                actualizarContador();
+                actualizarHoraActualizacion();
+                intentosFallidos = 0; // Resetear contador de errores
 
             } catch (error) {
                 console.error('❌ Error general:', error);
+                intentosFallidos++;
                 
                 // Mostrar error detallado
-                gallery.innerHTML = `
+                galleryElement.innerHTML = `
                     <div class="error-box">
                         <div class="icon">🚨</div>
                         <strong>Error al cargar las fotos</strong>
                         <span>${error.message || 'Error desconocido'}</span>
                         <div class="details">
-                            <strong>Detalles técnicos:</strong><br>
-                            ${error.stack || 'Sin stack trace'}<br><br>
-                            <strong>Posibles soluciones:</strong><br>
-                            1. Verifica que la clave anónima sea correcta<br>
-                            2. Confirma que el bucket existe y es público<br>
-                            3. Revisa la consola (F12) para más detalles
+                            <strong>Detalles del error:</strong><br>
+                            ${error.message}<br><br>
+                            <strong>Posibles causas:</strong><br>
+                            ${error.message.includes('JWT') ? '🔑 La clave anónima es incorrecta' : ''}
+                            ${error.message.includes('bucket') ? '📁 El bucket no existe o no es público' : ''}
+                            ${error.message.includes('network') ? '🌐 Problema de conexión a internet' : ''}
+                            ${!error.message.includes('JWT') && !error.message.includes('bucket') && !error.message.includes('network') ? '⚠️ Error desconocido, revisa la consola' : ''}
+                            <br><br>
+                            <strong>Intento:</strong> ${intentosFallidos} de 5
                         </div>
-                        <button onclick="cargarFotos(true)" 
-                                style="margin-top:12px;padding:8px 24px;background:#f97316;border:none;border-radius:6px;color:white;font-weight:600;cursor:pointer;">
-                            🔄 Reintentar
+                        <button class="btn-retry" onclick="cargar(true)">
+                            🔄 Reintentar ahora
                         </button>
                     </div>
                 `;
+                
+                // Si hay demasiados errores, mostrar mensaje de espera
+                if (intentosFallidos >= 5) {
+                    console.warn('⚠️ Demasiados errores, esperando 30s...');
+                }
             }
         }
 
@@ -603,10 +567,8 @@
         // RENDERIZAR GALERÍA
         // ============================================================
         function renderGaleria() {
-            const gallery = document.getElementById('gallery');
-            
-            if (!fotos.length) {
-                gallery.innerHTML = `
+            if (!fotos || fotos.length === 0) {
+                galleryElement.innerHTML = `
                     <div class="empty">
                         <div class="icon">📸</div>
                         <span>No hay fotos disponibles</span>
@@ -615,9 +577,9 @@
                 return;
             }
 
-            gallery.innerHTML = fotos.map((f, index) => {
+            galleryElement.innerHTML = fotos.map((f, index) => {
                 const nombre = f.name.replace(/\.[^/.]+$/, "");
-                const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${f.name}`;
+                const url = `${S_URL}/storage/v1/object/public/${BUCKET_NAME}/${f.name}`;
                 return `
                     <div class="photo-card" onclick="abrirModal(${index})">
                         <img src="${url}" 
@@ -639,9 +601,9 @@
         // ============================================================
         // CONTADOR Y HORA
         // ============================================================
-        function actualizarContador(total = null) {
+        function actualizarContador() {
             const el = document.getElementById('fotoCounter');
-            const count = total !== null ? total : fotos.length;
+            const count = fotos.length;
             el.textContent = count === 0 ? 'Sin fotos' : count === 1 ? '1 foto' : `${count} fotos`;
         }
 
@@ -659,12 +621,9 @@
             
             const foto = fotos[index];
             const nombre = foto.name.replace(/\.[^/.]+$/, "");
-            const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${foto.name}`;
+            const url = `${S_URL}/storage/v1/object/public/${BUCKET_NAME}/${foto.name}`;
             
-            fotoSeleccionada = {
-                nombre: nombre,
-                url: url
-            };
+            fotoSeleccionada = { nombre, url };
             
             document.getElementById('modalImg').src = url;
             document.getElementById('modalName').textContent = `📷 ${nombre}`;
@@ -684,7 +643,7 @@
         function abrirWhatsApp() {
             if (!fotoSeleccionada) return;
             
-            const mensaje = `${MENSAJE_BASE} "${fotoSeleccionada.nombre}"`;
+            const mensaje = `Hola, quiero la foto: "${fotoSeleccionada.nombre}"`;
             const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`;
             
             window.open(url, '_blank');
@@ -706,24 +665,23 @@
         });
 
         // ============================================================
-        // INICIO
+        // INICIO Y ACTUALIZACIÓN AUTOMÁTICA
         // ============================================================
-        console.log('🐑 Oveja Cloud Live iniciado');
-        console.log('📡 Conectando a:', SUPABASE_URL);
-        console.log('📁 Bucket:', BUCKET_NAME);
-        
-        // Cargar inicial
-        cargarFotos(true);
+        // Cargar inicial con loader
+        cargar(true);
 
         // Actualizar cada 10 segundos
         setInterval(() => {
-            cargarFotos(false);
+            cargar(false);
         }, 10000);
 
         // Actualizar la hora cada minuto
         setInterval(() => {
             actualizarHoraActualizacion();
         }, 60000);
+
+        console.log('✅ Oveja Cloud Live listo!');
+        console.log('📱 WhatsApp:', WHATSAPP_NUMBER);
     </script>
 
 </body>
